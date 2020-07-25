@@ -1,0 +1,272 @@
+﻿
+@{
+    ViewData["Title"] = "CreateGame";
+}
+
+<h1>Подготовка к игре</h1>
+
+<div class="row ship-game">
+    <div class="col-5">
+        <div class="draggable ship-box ui-widget ui-widget-content" data-length="4" style="width: 168px; height: 40px"></div>
+        <br />
+        <div class="draggable ship-box ui-widget ui-widget-content" data-length="3" style="width: 126px; height: 40px"></div>
+        <br />
+        <div class="draggable ship-box ui-widget ui-widget-content" data-length="3" style="width: 126px; height: 40px"></div>
+        <br />
+        <div class="draggable ship-box ui-widget ui-widget-content" data-length="2" style="width: 84px; height: 40px"></div>
+        <br />
+        <div class="draggable ship-box ui-widget ui-widget-content" data-length="2" style="width: 84px; height: 40px"></div>
+        <br />
+        <div class="draggable ship-box ui-widget ui-widget-content" data-length="2" style="width: 84px; height: 40px"></div>
+        <br />
+        <div class="draggable ship-box ui-widget ui-widget-content" data-length="1" style="width: 42px; height: 40px"></div>
+        <br />
+        <div class="draggable ship-box ui-widget ui-widget-content" data-length="1" style="width: 42px; height: 40px"></div>
+        <br />
+        <div class="draggable ship-box ui-widget ui-widget-content" data-length="1" style="width: 42px; height: 40px"></div>
+        <br />
+        <div class="draggable ship-box ui-widget ui-widget-content" data-length="1" style="width: 42px; height: 40px"></div>
+    </div>
+    <div class="col-7">
+        <div class="create-field">
+            <table class="battlefield-table">
+                @for (int y = 1; y <= 10; y++)
+                {
+                    <tr class="battlefield-row">
+                        @for (int x = 1; x <= 10; x++)
+                        {
+                            <td class="battlefield-cell">
+                                <div class="battlefield-cell-content" data-y=@y data-x=@x></div>
+                            </td>
+                        }
+                    </tr>
+                }
+            </table>
+        </div>
+        <br />
+        <button id="CreateNewGame" type="button" class="btn btn-outline-dark" disabled>Create Game</button>
+        <button id="FindGame" type="button" class="btn btn-outline-dark" disabled>Find Game</button>
+        <button id="reset" type="button" class="ml-3 btn btn-outline-dark">Reset</button>
+    </div>
+</div>
+
+
+@section scripts {
+    <script type="text/javascript">
+        "use strict";
+        $(function () {
+            $('.draggable').draggable({
+                containment: ".ship-game",
+                cursor: 'move',
+                revert: "invalid",
+                revertDuration: 1,
+                greedy: true
+            });
+
+        var shipSizeCount = 20;
+
+            $(".battlefield-cell-content").droppable({
+                accept: function (el) {
+                    if ($(this).hasClass('temporarily')) {
+                        $(this).removeClass('no-ships');
+                    }
+                    return !$(this).hasClass('no-ships');
+                },
+                over: function (event, ui)
+                {
+                var length = +$(ui.draggable).data('length');
+                var x = +$(this).data('x');
+                var y = +$(this).data('y');
+                var flag = false;
+                if ((x + length) > 11) {
+                    $(this).addClass('no-ships temporarily');
+                    $(this).removeClass('hover');
+                    flag = true;
+                }
+                else
+                {
+                    $(this).removeClass('no-ships');
+                    $(this).addClass('hover');
+                }
+
+                if (length > 1) {
+                    if (!flag && LockCellsForDraggbleOver(x, y, length)) {
+                        $(this).addClass('no-ships temporarily');
+                        $(this).removeClass('hover');
+                    }
+
+                    if (!flag && !LockCellsForDraggbleOver(x, y, length)) {
+                        $(this).removeClass('no-ships');
+                        $(this).addClass('hover');
+                    }
+                }
+                    
+            },
+            out: function (event, ui)
+            {
+                $(this).removeClass('no-ships');
+                $(this).removeClass('hover');
+            },
+            drop: function (event, ui)
+            {
+                $(this).removeClass('hover');
+                $(this).addClass('start');
+
+                var $draggable = $(ui.draggable);
+                var length = $draggable.data("length");
+                var i = 0;
+                var myflag = false;
+                var Xstart;
+                var Xfinish;
+                var Ystart;
+                var Yfinish;
+
+                $(".battlefield-cell-content").each(function (index, element) {
+                    if ($(element).hasClass("start")) {
+                        myflag = true;
+                        Xstart = +$(element).data('x');
+                        Ystart = +$(element).data('y');
+                    }
+                    if (myflag == false) {
+                        return;
+                    }
+                    else
+                    {
+                        var Xcurrent = +$(element).data('x');
+                        var Ycurrent = +$(element).data('y');
+                        LockTopBotoomCells(Xcurrent, Ycurrent);
+                        $(element).addClass("ship-on-field");
+                        $(element).addClass('no-ships');
+                        $(element).attr('data-ship_type', length);
+                        ++i;
+                        --shipSizeCount;
+                        if (i == length) {
+                            Xfinish = +$(element).data('x');
+                            Yfinish = +$(element).data('y');
+                            return false;
+                        }
+                    }
+                });
+
+                LockCells(Xstart, Ystart, Xfinish, Yfinish);
+
+                $(this).removeClass('start');
+                if (shipSizeCount == 0) {
+                    $('#CreateNewGame').prop('disabled', false);
+                    $('#FindGame').prop('disabled', false);
+                }
+
+                $(this).append(ui.draggable);
+                 ui.draggable.draggable({ disabled: true });
+                 ui.draggable.draggable('option', 'revert', true);
+            }
+        });
+        });
+
+        // Checking that the ship won't touch another one
+        var LockCellsForDraggbleOver = function (x, y, length) {
+            var cell = $('.battlefield-cell-content').filter(function () {
+                return +$(this).attr("data-x") === (x + length-1) && +$(this).attr("data-y") === y;
+            })
+            return cell.hasClass('no-ships');
+        }
+
+        // Locking neighboring cells
+        var LockCells = function (xst, yst, xfin, yfin) {
+            var cellStart = $('.battlefield-cell-content').filter(function () {
+                return +$(this).attr("data-x") === (xst - 1) && +$(this).attr("data-y") === yst;
+            })
+            cellStart.addClass('no-ships');
+
+            var cellFinish = $('.battlefield-cell-content').filter(function () {
+                return +$(this).attr("data-x") === (xfin + 1) && +$(this).attr("data-y") === yfin;
+            })
+            cellFinish.addClass('no-ships');
+        }
+
+        var LockTopBotoomCells = function (x, y) {
+            var bottonCell = $('.battlefield-cell-content').filter(function () {
+                return +$(this).attr("data-x") === x && +$(this).attr("data-y") === (y + 1);
+            })
+            bottonCell.addClass('no-ships');
+
+            var TopCell = $('.battlefield-cell-content').filter(function () {
+                return +$(this).attr("data-x") === x && +$(this).attr("data-y") === (y - 1);
+            })
+            TopCell.addClass('no-ships');
+        }
+
+        // Create game
+        $('#CreateNewGame').on('click', function () {
+
+            var ships = findShips(jQuery);
+            $.ajax({
+                type: "POST",
+                data: JSON.stringify(ships),
+                url: '/Game/CreateGame',
+                contentType: "application/json"
+            })
+        });
+
+        // Find game
+        $('#FindGame').on('click', function () {
+
+            var ships = findShips(jQuery);
+            $.ajax({
+                type: "POST",
+                data: JSON.stringify(ships),
+                url: '/Game/FindGame',
+                contentType: "application/json"
+            })
+        });
+
+
+        // For creating field with ships.
+        var findShips = function ($) {
+            var shipCount = 0;
+            var ships = new Array(10);
+            var lengthCounter = 1;
+            var y = 0;
+            var x = 0;
+            $(".ship-on-field").each(function (index, element) {
+                if (lengthCounter > 1) {
+                    --lengthCounter;
+                    return;
+                }
+                var length = $(element).data('ship_type');
+                lengthCounter = length;
+                var coordinates = new Array(length);
+                x = $(element).data('x');
+                y = $(element).data('y');
+                var i = 0;
+                $.each(coordinates, function () {
+                    coordinates[i] = { X: x, Y: y };
+                    i++;
+                    x++;
+                });
+                ships[shipCount] = {
+                    Size: length,
+                    Coordinates: coordinates
+                };
+                ++shipCount;
+            });
+
+            // test
+            $.each(ships, function () {
+                console.log("size: " + this.Size);
+                console.log("Coordinates:");
+                $.each(this.Coordinates, function () {
+                    console.log("x - " + this.X + ", y - " + this.Y);
+                });
+                console.log(" ");
+            });
+
+            return ships;
+        };
+
+        $('#reset').click(function () {
+            location.reload();
+        });
+
+    </script>
+}

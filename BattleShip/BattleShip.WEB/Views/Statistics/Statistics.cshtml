@@ -1,0 +1,121 @@
+﻿@model BattleShip.WEB.Models.StatisticsViewModel
+@using BattleShip.BusinessLogic.Enums
+
+
+@{
+    ViewData["Title"] = "Statistics";
+}
+
+<form method="get">
+    <div class="form-row">
+        <div class="col-3">
+            <label for="name">Имя: </label>
+            @Html.TextBox("name", Model.FilterStatisticsRecord.SelectedName, new { @class = "form-control" })
+        </div>
+        <div class="col-4">
+            <label for="onlyIntactShips">Только с целыми кораблями: </label>
+            @Html.CheckBox("onlyIntactShips", Model.FilterStatisticsRecord.OnlyIntactShips, new { @class = "form-check", onchange = "this.form.submit();" })
+        </div>
+        <div class="col-3">
+            <label for="filterMoveState">Количество ходов: </label>
+            @Html.DropDownList("filterMoveState", Html.GetEnumSelectList<FilterMoveState>(), new { @class = "form-control", onchange = "this.form.submit();" })
+        </div>
+        <div class="col-2 mt-5">
+            <input type="submit" value="Фильтр" class="btn btn-outline-dark float-right" />
+        </div>
+    </div>
+</form>
+
+<br />
+
+<table class="table mt-3">
+    <thead class="thead-dark">
+        <tr>
+            <th>
+                <a class="text-light"
+                   asp-action="Statistics"
+                   asp-route-sortOrder="@Model.SortedStatisticsRecord.NameSort"
+                   asp-route-name="@Model.FilterStatisticsRecord.SelectedName"
+                   asp-route-onlyIntactShips="@Model.FilterStatisticsRecord.OnlyIntactShips"
+                   asp-route-filterMoveState="@Model.FilterStatisticsRecord.FilterMoveState">
+                    Победитель
+                </a>
+            </th>
+            <th>
+                <a class="text-light"
+                   asp-action="Statistics"
+                   asp-route-sortOrder="@Model.SortedStatisticsRecord.MoveCountSort"
+                   asp-route-name="@Model.FilterStatisticsRecord.SelectedName"
+                   asp-route-onlyIntactShips="@Model.FilterStatisticsRecord.OnlyIntactShips"
+                   asp-route-filterMoveState="@Model.FilterStatisticsRecord.FilterMoveState">
+                    Количество ходов
+                </a>
+            </th>
+            <th>
+                <a class="text-light"
+                   asp-action="Statistics"
+                   asp-route-sortOrder="@Model.SortedStatisticsRecord.ShipCountSort"
+                   asp-route-name="@Model.FilterStatisticsRecord.SelectedName"
+                   asp-route-onlyIntactShips="@Model.FilterStatisticsRecord.OnlyIntactShips"
+                   asp-route-filterMoveState="@Model.FilterStatisticsRecord.FilterMoveState">
+                    Количество выживших кораблей
+                </a>
+            </th>
+            <th>
+                <p class="text-light">
+                    Оставшиеся корабли
+                </p>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var record in Model.StatisticsRecords)
+        {
+            <tr>
+                <td>@record.Winner</td>
+                <td>@record.MoveCount</td>
+                <td>@record.WinnerShips.Count()</td>
+                <td>
+                    @foreach (var ship in record.WinnerShips)
+                    {
+                        <span>
+                            @ship.Size - палубный
+                            @if (ship.InjuredCells != 0)
+                            {
+                                <span>(ранено @ship.InjuredCells)</span>
+                            }
+                        </span>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (Model.PageViewModel.HasPreviousPage)
+{
+    <a asp-action="Statistics"
+       asp-route-page="@(Model.PageViewModel.PageNumber - 1)"
+       asp-route-sortOrder="@Model.SortedStatisticsRecord.Current"
+       asp-route-name="@Model.FilterStatisticsRecord.SelectedName"
+       asp-route-onlyIntactShips="@Model.FilterStatisticsRecord.OnlyIntactShips"
+       asp-route-filterMoveState="@Model.FilterStatisticsRecord.FilterMoveState"
+       class="btn  btn-outline-dark">
+        <i class="glyphicon glyphicon-chevron-left"></i>
+        Назад
+    </a>
+}
+@if (Model.PageViewModel.HasNextPage)
+{
+    <a asp-action="Statistics"
+        asp-route-page="@(Model.PageViewModel.PageNumber + 1)"
+       asp-route-sortOrder="@Model.SortedStatisticsRecord.Current"
+       asp-route-name="@Model.FilterStatisticsRecord.SelectedName"
+       asp-route-onlyIntactShips="@Model.FilterStatisticsRecord.OnlyIntactShips"
+       asp-route-filterMoveState="@Model.FilterStatisticsRecord.FilterMoveState"
+       class="btn btn-outline-dark">
+        Вперед
+        <i class="glyphicon glyphicon-chevron-right"></i>
+    </a>
+}
+
